@@ -1,0 +1,38 @@
+name: Sync with upstream
+
+on:
+  schedule:
+    # 每天 UTC 20:00 = 北京时间 04:00
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge upstream develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/Anxcye/anx-reader.git
+          git fetch upstream develop
+          if git merge --no-edit upstream/develop; then
+            git push origin develop
+          else
+            echo "::error::上游合并冲突，需手动处理"
+            exit 1
+          fi
